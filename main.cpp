@@ -1,5 +1,5 @@
 #include "mbed.h"
-#include "Server.cpp"
+#include "Client.cpp"
 #include <cstdio>
 
 Thread thread;
@@ -69,11 +69,11 @@ int main()
 
    
     // Thread thread(wifi, start, osPriorityNormal, OS_STACK_SIZE, NULL);
-    Server server = Server(wifi);
-    thread.start(&server, &Server::start);
+    Client client = Client(wifi);
+    thread.start(&client, &Client::start_client);
     while (1) {
-        printf("main\n");
-        ThisThread::sleep_for(10000);
+        // printf("main\n");
+        // ThisThread::sleep_for(10000);
     }
     return 0;
 }
