@@ -1,8 +1,10 @@
 #include "mbed.h"
 #include "Client.cpp"
 #include <cstdio>
+#include <string>
 
 Thread thread;
+DigitalIn user_button(USER_BUTTON);
 
 void print_start_info() 
 {
@@ -51,11 +53,11 @@ int main()
         printf("ERROR: No WiFiInterface found.\n");
         return -1;
     }
-    int count = scan_demo(wifi);
-    if (count == 0) {
-        printf("No WIFI APs found - can't continue further.\n");
-        return -1;
-    }
+    // int count = scan_demo(wifi);
+    // if (count == 0) {
+    //     printf("No WIFI APs found - can't continue further.\n");
+    //     return -1;
+    // }
 
     printf("\nConnecting to %s...\n", MBED_CONF_APP_WIFI_SSID);
     int ret = wifi->connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
@@ -68,12 +70,21 @@ int main()
     printf("CFM IP:%s\n", address.get_ip_address());
 
    
-    // Thread thread(wifi, start, osPriorityNormal, OS_STACK_SIZE, NULL);
     Client client = Client(wifi);
     thread.start(&client, &Client::start_client);
+    
     while (1) {
         // printf("main\n");
         // ThisThread::sleep_for(10000);
+        // printf("Main %d \n",  user_button.read());
+
+        // if (user_button.read()) {
+        //     thread.join();
+        //     thread.terminate();
+        //     thread.start(&client, &Client::start_client);
+        // }
+        // ThisThread::sleep_for(100);
+
     }
     return 0;
 }

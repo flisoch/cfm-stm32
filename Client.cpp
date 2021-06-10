@@ -6,8 +6,8 @@ class Client {
 public:
   WiFiInterface *wifi;
   TCPSocket *server_socket;
-  // TCPSocket *client_socket;
   SocketAddress server_address;
+  bool connected;
 
   Client(WiFiInterface *wifi) {
     this->wifi = wifi;
@@ -18,83 +18,79 @@ public:
 
     server_address = SocketAddress("192.168.1.2");
     server_address.set_port(4567);
+    connected = false;
   }
 
-  void start() {
-    // printf("Started Server on port:%d \n", PORT);
-    // nsapi_error_t err;
-    // if (err == NSAPI_ERROR_OK) {
-    //     printf("Ok, success\n");
-    // }
-    // else if(err == NSAPI_ERROR_WOULD_BLOCK) {
-    //     printf("socket set to non-blocking \n");
-    // }
-    // else if(err == NSAPI_ERROR_NO_SOCKET) {
-    //     printf("socket was not open\n");
-    // }
-    // else {
-    //     printf("error: %d \n", err);
-    // }
-
-    // client_socket->getpeername(&client_address);
-    // printf("Accepted %s:%d\n", client_address.get_ip_address(),
-    // client_address.get_port());
-
-    // while (1) {
-
-    //     char rbuffer[64];
-    //     int rcount;
-
-    //     sprintf(rbuffer, "{\"method\":\"get\", \"topic\": \"/disconnect\"}");
-    //     server_socket->connect(client_address);
-    //     rcount = server_socket->send(rbuffer, strlen(rbuffer));
-
-    //     rcount = server_socket->recvfrom(&client_address, rbuffer, sizeof
-    //     rbuffer);
-
-    //     if (rcount > 0) {
-    //         rbuffer[rcount] = '\0';
-    //         printf("recv %d [%.*s]\n", rcount, strstr(rbuffer, "\r\n") -
-    //         rbuffer, rbuffer);
-
-    //         sprintf(rbuffer, "got your message");
-    //         client_socket->send(rbuffer, strlen(rbuffer));
-    //     }
-    //     else {
-    //         printf("No data received\n");
-    //         ThisThread::sleep_for(3000);
-    //         break;
-    //     }
-    // }
-    // printf("end\n");
-  }
-
-  void start_client() {
-
+  void connect() {
     nsapi_error_t conn_err;
-    while (1) {
 
+    while (!connected) {
       conn_err = server_socket->connect(server_address);
       printf("Connection: err=  %d \n", conn_err);
       if (conn_err < 0) {
         printf("Failed to connect\n");
         ThisThread::sleep_for(5000);
-        continue;
       } else {
-        char rbuffer[256];
-        int rcount;
-        sprintf(rbuffer, "{\"topic\": \"connect\", \"data\": \"hello\"}");
-        server_socket->send(rbuffer, strlen(rbuffer));
-        rcount = server_socket->recv(rbuffer, sizeof rbuffer);
-        rbuffer[rcount] = '\0';
-        printf("recv %d [%.*s]\n", rcount, strstr(rbuffer, "\r\n") - rbuffer,
-               rbuffer);
-        sprintf(rbuffer, "{\"topic\": \"connect\", \"data\": \"gack\"}");
-        server_socket->send(rbuffer, strlen(rbuffer));
-        ThisThread::sleep_for(10000);
-        // server_socket->close();
-        // break;
+        connected = true;
       }
+    }
+  }
+
+  int receive_message(char *rbuffer) {
+    int rcount;
+    rcount = server_socket->recv(rbuffer, strlen(rbuffer));
+    rbuffer[rcount] = '\0';
+    printf("recv %d [%.*s]\n", rcount, strstr(rbuffer, "\r\n") - rbuffer,
+           rbuffer);
+    return rcount;
+  }
+
+  void generate_message(char *rbuffer, int *left) {
+    char topic = rbuffer[0];
+    *left = (*left) - 1;
+    if (topic == 'x') {
+      // disconnect
+    } else if (topic == 'g') {
+      // gauss
+      printf("TOPIC G");
+      sprintf(rbuffer, "n1b-1.790667E+01r-5.701844E-02i-5.636006E-02");
+
+    } else if (topic == 'c') {
+      // connect
+    } else if (topic == 'm') {
+      // mask
+    } else if (topic == 'd') {
+      // demagnetize
+    }
+  }
+
+  void send_message(char *rbuffer) {
+    server_socket->send(rbuffer, strlen(rbuffer));
+  }
+
+  void handle_commands() {
+    char rbuffer[128];
+    int rcount;
+    while (connected) {
+      rcount = receive_message(rbuffer);
+      if (rcount > 0) {
+        int messages_left = 10000;
+        while (messages_left > 0) {
+          generate_message(rbuffer, &messages_left);
+          send_message(rbuffer);
+        }
+      }
+    }
+  }
+
+  void start_client() {
+    while (1) {
+      connect();
+      printf("Connection Established\n");
+    //   connected = false;
+      handle_commands();
+
+      ThisThread::sleep_for(10000);
     }
   }
 };
