@@ -89,7 +89,11 @@ public:
         rbuffer[rcount] = '\0';
         printf("recv %d [%.*s]\n", rcount, strstr(rbuffer, "\r\n") - rbuffer,
                rbuffer);
-        break;
+        sprintf(rbuffer, "{\"topic\": \"connect\", \"data\": \"gack\"}");
+        server_socket->send(rbuffer, strlen(rbuffer));
+        ThisThread::sleep_for(10000);
+        // server_socket->close();
+        // break;
       }
     }
   }
