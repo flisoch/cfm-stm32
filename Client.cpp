@@ -23,13 +23,14 @@ public:
 
   void connect() {
     nsapi_error_t conn_err;
-
+    int err;
+    err = server_socket->open(wifi);
     while (!connected) {
       conn_err = server_socket->connect(server_address);
       printf("Connection: err=  %d \n", conn_err);
       if (conn_err < 0) {
         printf("Failed to connect\n");
-        ThisThread::sleep_for(5000);
+        ThisThread::sleep_for(1000);
       } else {
         connected = true;
       }
@@ -40,28 +41,11 @@ public:
     int rcount;
     rcount = server_socket->recv(rbuffer, strlen(rbuffer));
     rbuffer[rcount] = '\0';
-    printf("recv %d [%.*s]\n", rcount, strstr(rbuffer, "\r\n") - rbuffer,
-           rbuffer);
-    return rcount;
-  }
-
-  void generate_message(char *rbuffer, int *left) {
-    char topic = rbuffer[0];
-    *left = (*left) - 1;
-    if (topic == 'x') {
-      // disconnect
-    } else if (topic == 'g') {
-      // gauss
-      printf("TOPIC G");
-      sprintf(rbuffer, "n1b-1.790667E+01r-5.701844E-02i-5.636006E-02");
-
-    } else if (topic == 'c') {
-      // connect
-    } else if (topic == 'm') {
-      // mask
-    } else if (topic == 'd') {
-      // demagnetize
+    if (rcount > 0) {
+      printf("recv %d [%.*s]\n", rcount, strstr(rbuffer, "\r\n") - rbuffer,
+             rbuffer);
     }
+    return rcount;
   }
 
   void send_message(char *rbuffer) {
@@ -74,11 +58,25 @@ public:
     while (connected) {
       rcount = receive_message(rbuffer);
       if (rcount > 0) {
-        int messages_left = 10000;
-        while (messages_left > 0) {
-          generate_message(rbuffer, &messages_left);
-          send_message(rbuffer);
+        char topic = rbuffer[0];
+
+        if (topic == 'x') {
+          // disconnect
+          server_socket->close();
+          connected = false;
+        } else if (topic == 'g') {
+          // gauss
+          printf("TOPIC G\n");
+          send_gauss_points();
+
+        } else if (topic == 'c') {
+          // connect
+        } else if (topic == 'm') {
+          // mask
+        } else if (topic == 'd') {
+          // demagnetize
         }
+        // }
       }
     }
   }
@@ -87,10 +85,29 @@ public:
     while (1) {
       connect();
       printf("Connection Established\n");
-    //   connected = false;
+      //   connected = false;
       handle_commands();
-
-      ThisThread::sleep_for(10000);
+      printf("Connection closed");
     }
+  }
+
+  void send_gauss_points() {
+    char rbuffer[255];
+    sprintf(rbuffer, "g 1 -1.790667E+01 -5.701844E-02 -5.636006E-02");
+    send_message(rbuffer);
+    sprintf(rbuffer, "g 2 -1.808751E+01 -5.712836E-02 -5.623527E-02");
+    send_message(rbuffer);
+    sprintf(rbuffer, "g 3 -1.790298E+01 -5.710830E-02 -5.647627E-02");
+    send_message(rbuffer);
+    sprintf(rbuffer, "g 4 -1.784763E+01 -5.717870E-02 -5.647685E-02");
+    send_message(rbuffer);
+    sprintf(rbuffer, "g 5 -1.805061E+01 -5.727426E-02 -5.658544E-02");
+    send_message(rbuffer);
+    sprintf(rbuffer, "g 6 -1.801001E+01 -5.724437E-02 -5.642178E-02");
+    send_message(rbuffer);
+    sprintf(rbuffer, "g 7 -1.798049E+01 -5.731123E-02 -5.671356E-02");
+    send_message(rbuffer);
+    sprintf(rbuffer, "g 8 -1.814656E+01 -5.738969E-02 -5.678269E-02");
+    send_message(rbuffer);
   }
 };
